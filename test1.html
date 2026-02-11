@@ -158,6 +158,9 @@
   <select id="filter-cat">
     <option value="All">All Categories</option>
   </select>
+  <select id="filter-owner">
+    <option value="All">All Owners</option>
+  </select>
   <button id="btn-mc">★ Mission Critical Only</button>
   <button id="btn-reset">Reset View</button>
 </div>
@@ -391,6 +394,7 @@ const HUB_IDX = 0;
 
 // ─── STATE ───────────────────────────────────────────────────────
 let filterCat = 'All';
+let filterOwner = 'All';
 let mcOnly = false;
 let highlightSystem = null;
 
@@ -416,6 +420,7 @@ function render() {
   let visible = systems.filter(s => {
     if (s.idx === HUB_IDX) return true;
     if (filterCat !== 'All' && s.category !== filterCat) return false;
+    if (filterOwner !== 'All' && s.owner !== filterOwner) return false;
     if (mcOnly && !s.mc) return false;
     return true;
   });
@@ -738,6 +743,20 @@ catSelect.addEventListener('change', () => {
   render();
 });
 
+const ownerSelect = document.getElementById('filter-owner');
+const owners = [...new Set(systems.map(s => s.owner).filter(Boolean))].sort();
+owners.forEach(o => {
+  const opt = document.createElement('option');
+  opt.value = o;
+  opt.textContent = o;
+  ownerSelect.appendChild(opt);
+});
+ownerSelect.addEventListener('change', () => {
+  filterOwner = ownerSelect.value;
+  highlightSystem = null;
+  render();
+});
+
 document.getElementById('btn-mc').addEventListener('click', function() {
   mcOnly = !mcOnly;
   this.classList.toggle('active', mcOnly);
@@ -747,9 +766,11 @@ document.getElementById('btn-mc').addEventListener('click', function() {
 
 document.getElementById('btn-reset').addEventListener('click', () => {
   filterCat = 'All';
+  filterOwner = 'All';
   mcOnly = false;
   highlightSystem = null;
   catSelect.value = 'All';
+  ownerSelect.value = 'All';
   document.getElementById('btn-mc').classList.remove('active');
   render();
 });
