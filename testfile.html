@@ -60,6 +60,8 @@
     padding: 14px 18px;
     font-size: 11px;
     z-index: 50;
+    max-height: 60vh;
+    overflow-y: auto;
   }
   .legend-title {
     font-size: 9px;
@@ -97,6 +99,7 @@
     display: flex;
     gap: 8px;
     z-index: 50;
+    flex-wrap: wrap;
   }
   .controls select {
     background: #1a1a2e;
@@ -137,14 +140,11 @@
   .title-bar h1 span { color: #e8735a; }
   .title-bar p { font-size: 10px; color: #555; margin-top: 2px; }
   
-  /* Hex clip path for nodes */
   .hex-node { transition: opacity 0.3s, transform 0.3s; }
   .hex-node:hover { filter: brightness(1.3); }
   .connection-line { transition: opacity 0.3s; }
   
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes pulseGlow { 0%, 100% { filter: drop-shadow(0 0 4px rgba(232,115,90,0.3)); } 50% { filter: drop-shadow(0 0 12px rgba(232,115,90,0.6)); } }
-  .hub-glow { animation: pulseGlow 3s ease-in-out infinite; }
 </style>
 </head>
 <body>
@@ -372,7 +372,7 @@ const svg = document.getElementById('main-svg');
 const tooltip = document.getElementById('tooltip');
 const NS = 'http://www.w3.org/2000/svg';
 
-// Parse systems
+// Parse systems — BAS is now just a regular system (index 0)
 const systems = SYSTEMS.map((s, i) => ({
   idx: i, name: s[0], owner: s[1], category: s[2] || 'Uncategorized',
   mc: s[3], status: s[4]
@@ -388,9 +388,6 @@ EDGES.forEach(([s, t]) => {
 // Categories
 const catSet = new Set(systems.map(s => s.category));
 const categories = [...catSet].filter(c => c && c !== 'Uncategorized').sort();
-
-// BAS is index 0 — the hub
-const HUB_IDX = 0;
 
 // ─── STATE ───────────────────────────────────────────────────────
 let filterCat = 'All';
@@ -416,31 +413,31 @@ function render() {
   const cx = W / 2;
   const cy = H / 2;
   
-  // Filter systems
+  // Filter systems — BAS is no longer special, it follows filters like everything else
   let visible = systems.filter(s => {
-    if (s.idx === HUB_IDX) return true;
     if (filterCat !== 'All' && s.category !== filterCat) return false;
     if (filterOwner !== 'All' && s.owner !== filterOwner) return false;
     if (mcOnly && !s.mc) return false;
     return true;
   });
   
-  // Separate hub from rest
-  const hub = visible.find(s => s.idx === HUB_IDX);
-  const others = visible.filter(s => s.idx !== HUB_IDX);
-  
-  // Group others by category
+  // Group by category
   const byCat = {};
-  others.forEach(s => {
+  visible.forEach(s => {
     if (!byCat[s.category]) byCat[s.category] = [];
     byCat[s.category].push(s);
   });
   
   const catKeys = Object.keys(byCat).sort();
-  const totalSystems = others.length;
+  const totalSystems = visible.length;
   
-  // Assign angular segments per category
-  const gap = 0.06;
+  if (totalSystems === 0) {
+    document.getElementById('stats-line').textContent = '0 systems · 0 connections';
+    return;
+  }
+  
+  // Assign angular segments per category (full radial — no hub)
+  const gap = 0.08;
   const totalGap = gap * catKeys.length;
   const avail = 2 * Math.PI - totalGap;
   
@@ -456,16 +453,14 @@ function render() {
   // Defs
   const defs = document.createElementNS(NS, 'defs');
   
-  // Radial gradient for background
   const rg = document.createElementNS(NS, 'radialGradient');
   rg.id = 'bgGlow';
-  rg.innerHTML = `<stop offset="0%" stop-color="#1a1a3a" /><stop offset="100%" stop-color="#0d0d1a" />`;
+  rg.innerHTML = '<stop offset="0%" stop-color="#1a1a3a" /><stop offset="100%" stop-color="#0d0d1a" />';
   defs.appendChild(rg);
   
-  // Glow filter
   const flt = document.createElementNS(NS, 'filter');
   flt.id = 'glow';
-  flt.innerHTML = `<feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>`;
+  flt.innerHTML = '<feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>';
   defs.appendChild(flt);
   
   svg.appendChild(defs);
@@ -477,9 +472,25 @@ function render() {
   bg.setAttribute('fill', 'url(#bgGlow)');
   svg.appendChild(bg);
   
-  // Draw category arc segments (donut ring)
-  const ringR = Math.min(W, H) * 0.22;
-  const ringW = 14;
+  // Draw subtle concentric guide rings
+  const gGuides = document.createElementNS(NS, 'g');
+  [0.15, 0.25, 0.35, 0.44].forEach(frac => {
+    const r = Math.min(W, H) * frac;
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', cx);
+    c.setAttribute('cy', cy);
+    c.setAttribute('r', r);
+    c.setAttribute('fill', 'none');
+    c.setAttribute('stroke', '#1e1e38');
+    c.setAttribute('stroke-width', '0.5');
+    c.setAttribute('stroke-dasharray', '3,6');
+    gGuides.appendChild(c);
+  });
+  svg.appendChild(gGuides);
+  
+  // Draw category arc segments (donut ring for visual grouping)
+  const ringR = Math.min(W, H) * 0.16;
+  const ringW = 10;
   
   const gArcs = document.createElementNS(NS, 'g');
   segments.forEach(seg => {
@@ -493,49 +504,45 @@ function render() {
     path.setAttribute('stroke', CAT_COLORS[seg.cat] || '#666');
     path.setAttribute('stroke-width', ringW);
     path.setAttribute('stroke-linecap', 'round');
-    path.setAttribute('opacity', '0.4');
+    path.setAttribute('opacity', '0.3');
     gArcs.appendChild(path);
     
     // Category label along arc
     const mid = (seg.start + seg.end) / 2;
-    const lr = ringR + 20;
+    const lr = ringR - 22;
     const lx = cx + lr * Math.cos(mid), ly = cy + lr * Math.sin(mid);
     const txt = document.createElementNS(NS, 'text');
     txt.setAttribute('x', lx);
     txt.setAttribute('y', ly);
     txt.setAttribute('fill', CAT_COLORS[seg.cat] || '#888');
-    txt.setAttribute('font-size', '9');
+    txt.setAttribute('font-size', '8');
     txt.setAttribute('font-weight', '600');
     txt.setAttribute('text-anchor', 'middle');
     txt.setAttribute('dominant-baseline', 'middle');
-    txt.setAttribute('opacity', '0.7');
-    const shortName = seg.cat.length > 20 ? seg.cat.replace(/ & /g, '/').replace(/\(.*?\)/g, '').trim().slice(0, 22) : seg.cat;
+    txt.setAttribute('opacity', '0.6');
+    const shortName = seg.cat.length > 22 ? seg.cat.replace(/ & /g, '/').replace(/\(.*?\)/g, '').trim().slice(0, 20) + '…' : seg.cat;
     txt.textContent = shortName;
     
-    // Rotate to follow arc
     const deg = mid * (180 / Math.PI);
     const flip = deg > 90 || deg < -90;
     txt.setAttribute('transform', `rotate(${flip ? deg + 180 : deg}, ${lx}, ${ly})`);
-    if (flip) txt.setAttribute('text-anchor', 'middle');
     gArcs.appendChild(txt);
   });
   svg.appendChild(gArcs);
   
-  // Position nodes in rings outside the donut
+  // Position ALL nodes radially — BAS is just another node in its category
   const nodePositions = {};
-  const innerR = ringR + 44;
-  const outerR = Math.min(W, H) * 0.44;
+  const innerR = ringR + 30;
+  const outerR = Math.min(W, H) * 0.46;
   
   segments.forEach(seg => {
-    const n = seg.systems.length;
-    // Systems with connections to BAS go in inner ring, others outer
+    // Sort: connected systems first (by connection count), then unconnected
     const connected = seg.systems.filter(s => connCount[s.idx]);
     const unconnected = seg.systems.filter(s => !connCount[s.idx]);
-    
     const allSorted = [...connected.sort((a, b) => (connCount[b.idx] || 0) - (connCount[a.idx] || 0)), ...unconnected];
     
     const angSpan = seg.end - seg.start;
-    const rings = allSorted.length > 8 ? 3 : allSorted.length > 4 ? 2 : 1;
+    const rings = allSorted.length > 12 ? 4 : allSorted.length > 8 ? 3 : allSorted.length > 4 ? 2 : 1;
     
     allSorted.forEach((s, i) => {
       const ring = Math.floor(i / Math.ceil(allSorted.length / rings));
@@ -546,16 +553,17 @@ function render() {
       const angPad = 0.02;
       const a = seg.start + angPad + (angSpan - 2 * angPad) * ((idxInRing + 0.5) / countInRing);
       
+      // Node size based on connections — BAS will naturally get a bigger node due to many connections
+      const cc = connCount[s.idx] || 0;
+      const baseR = s.idx === 0 ? 22 : Math.max(11, Math.min(20, 9 + cc * 1.2));
+      
       nodePositions[s.idx] = {
         x: cx + r * Math.cos(a),
         y: cy + r * Math.sin(a),
-        r: Math.max(12, Math.min(22, 10 + (connCount[s.idx] || 0) * 1.5))
+        r: baseR
       };
     });
   });
-  
-  // Hub position
-  nodePositions[HUB_IDX] = { x: cx, y: cy, r: 38 };
   
   // Draw connection lines
   const gLines = document.createElementNS(NS, 'g');
@@ -565,95 +573,76 @@ function render() {
     
     const isHighlit = highlightSystem === null || highlightSystem === si || highlightSystem === ti;
     
-    const line = document.createElementNS(NS, 'line');
-    line.setAttribute('x1', sp.x);
-    line.setAttribute('y1', sp.y);
-    line.setAttribute('x2', tp.x);
-    line.setAttribute('y2', tp.y);
-    line.setAttribute('stroke', CAT_COLORS[systems[si].category] || '#444');
-    line.setAttribute('stroke-width', isHighlit ? 1.5 : 0.5);
-    line.setAttribute('stroke-opacity', isHighlit ? (highlightSystem !== null ? 0.7 : 0.2) : 0.04);
-    line.classList.add('connection-line');
-    line.dataset.source = si;
-    line.dataset.target = ti;
-    gLines.appendChild(line);
+    // Use curved lines for cross-category connections
+    const sameCat = systems[si].category === systems[ti].category;
+    
+    if (sameCat) {
+      const line = document.createElementNS(NS, 'line');
+      line.setAttribute('x1', sp.x);
+      line.setAttribute('y1', sp.y);
+      line.setAttribute('x2', tp.x);
+      line.setAttribute('y2', tp.y);
+      line.setAttribute('stroke', CAT_COLORS[systems[si].category] || '#444');
+      line.setAttribute('stroke-width', isHighlit ? 1.5 : 0.5);
+      line.setAttribute('stroke-opacity', isHighlit ? (highlightSystem !== null ? 0.6 : 0.15) : 0.03);
+      line.classList.add('connection-line');
+      gLines.appendChild(line);
+    } else {
+      // Curved path through center area for cross-category edges
+      const mx = cx + (sp.x + tp.x - 2 * cx) * 0.15;
+      const my = cy + (sp.y + tp.y - 2 * cy) * 0.15;
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('d', `M ${sp.x} ${sp.y} Q ${mx} ${my} ${tp.x} ${tp.y}`);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', '#5a5a7a');
+      path.setAttribute('stroke-width', isHighlit ? 1.2 : 0.4);
+      path.setAttribute('stroke-opacity', isHighlit ? (highlightSystem !== null ? 0.5 : 0.12) : 0.03);
+      path.setAttribute('stroke-dasharray', '4,3');
+      path.classList.add('connection-line');
+      gLines.appendChild(path);
+    }
   });
   svg.appendChild(gLines);
   
   // Draw nodes
   const gNodes = document.createElementNS(NS, 'g');
   
-  // Hub node first
-  if (nodePositions[HUB_IDX]) {
-    const hp = nodePositions[HUB_IDX];
-    const g = document.createElementNS(NS, 'g');
-    g.classList.add('hub-glow');
-    
-    // Glow ring
-    const ring = document.createElementNS(NS, 'circle');
-    ring.setAttribute('cx', hp.x);
-    ring.setAttribute('cy', hp.y);
-    ring.setAttribute('r', hp.r + 6);
-    ring.setAttribute('fill', 'none');
-    ring.setAttribute('stroke', '#e8735a');
-    ring.setAttribute('stroke-width', '2');
-    ring.setAttribute('stroke-opacity', '0.3');
-    g.appendChild(ring);
-    
-    const hex = document.createElementNS(NS, 'path');
-    hex.setAttribute('d', hexPath(hp.x, hp.y, hp.r));
-    hex.setAttribute('fill', '#e8735a');
-    hex.setAttribute('fill-opacity', '0.9');
-    hex.setAttribute('stroke', '#e8735a');
-    hex.setAttribute('stroke-width', '2');
-    hex.setAttribute('filter', 'url(#glow)');
-    g.appendChild(hex);
-    
-    const t1 = document.createElementNS(NS, 'text');
-    t1.setAttribute('x', hp.x);
-    t1.setAttribute('y', hp.y - 4);
-    t1.setAttribute('fill', '#fff');
-    t1.setAttribute('font-size', '10');
-    t1.setAttribute('font-weight', '700');
-    t1.setAttribute('text-anchor', 'middle');
-    t1.textContent = 'BAS';
-    g.appendChild(t1);
-    
-    const t2 = document.createElementNS(NS, 'text');
-    t2.setAttribute('x', hp.x);
-    t2.setAttribute('y', hp.y + 10);
-    t2.setAttribute('fill', '#fff');
-    t2.setAttribute('font-size', '7');
-    t2.setAttribute('font-weight', '500');
-    t2.setAttribute('text-anchor', 'middle');
-    t2.setAttribute('opacity', '0.7');
-    t2.textContent = `${connCount[0] || 0} connections`;
-    g.appendChild(t2);
-    
-    attachNodeEvents(g, systems[0], hp);
-    gNodes.appendChild(g);
-  }
-  
-  // Other nodes
   Object.entries(nodePositions).forEach(([idx, pos]) => {
     const i = parseInt(idx);
-    if (i === HUB_IDX) return;
     const sys = systems[i];
     if (!sys) return;
     
     const isHighlit = highlightSystem === null || highlightSystem === i ||
       EDGES.some(([s, t]) => (s === highlightSystem && t === i) || (t === highlightSystem && s === i));
     
+    const isBAS = i === 0;
+    const cc = connCount[i] || 0;
+    
     const g = document.createElementNS(NS, 'g');
     g.classList.add('hex-node');
-    g.style.opacity = isHighlit ? 1 : (highlightSystem !== null ? 0.15 : 1);
+    g.style.opacity = isHighlit ? 1 : (highlightSystem !== null ? 0.12 : 1);
+    
+    // BAS gets a subtle distinguishing ring (it's still prominent due to connections, just not THE hub)
+    if (isBAS) {
+      const ring = document.createElementNS(NS, 'circle');
+      ring.setAttribute('cx', pos.x);
+      ring.setAttribute('cy', pos.y);
+      ring.setAttribute('r', pos.r + 4);
+      ring.setAttribute('fill', 'none');
+      ring.setAttribute('stroke', CAT_COLORS[sys.category] || '#666');
+      ring.setAttribute('stroke-width', '1.5');
+      ring.setAttribute('stroke-opacity', '0.4');
+      ring.setAttribute('stroke-dasharray', '3,2');
+      g.appendChild(ring);
+    }
     
     const hex = document.createElementNS(NS, 'path');
     hex.setAttribute('d', hexPath(pos.x, pos.y, pos.r));
-    hex.setAttribute('fill', (CAT_COLORS[sys.category] || '#666') + '33');
+    hex.setAttribute('fill', (CAT_COLORS[sys.category] || '#666') + (isBAS ? '55' : '33'));
     hex.setAttribute('stroke', CAT_COLORS[sys.category] || '#666');
-    hex.setAttribute('stroke-width', sys.mc ? 2 : 1);
-    hex.setAttribute('stroke-opacity', sys.mc ? 0.9 : 0.5);
+    hex.setAttribute('stroke-width', sys.mc ? 2 : (isBAS ? 1.5 : 1));
+    hex.setAttribute('stroke-opacity', sys.mc ? 0.9 : (isBAS ? 0.8 : 0.5));
+    if (isBAS) hex.setAttribute('filter', 'url(#glow)');
     g.appendChild(hex);
     
     if (sys.mc) {
@@ -670,15 +659,30 @@ function render() {
     // Label
     const label = document.createElementNS(NS, 'text');
     label.setAttribute('x', pos.x);
-    label.setAttribute('y', pos.y + 1);
+    label.setAttribute('y', pos.y + (isBAS ? -2 : 1));
     label.setAttribute('fill', '#ddd');
-    label.setAttribute('font-size', pos.r > 16 ? '7' : '6');
-    label.setAttribute('font-weight', '600');
+    label.setAttribute('font-size', isBAS ? '8' : (pos.r > 16 ? '7' : '6'));
+    label.setAttribute('font-weight', isBAS ? '700' : '600');
     label.setAttribute('text-anchor', 'middle');
     label.setAttribute('dominant-baseline', 'middle');
-    const short = sys.name.length > 18 ? sys.name.slice(0, 16) + '…' : sys.name;
+    const maxLen = isBAS ? 22 : 18;
+    const short = sys.name.length > maxLen ? sys.name.slice(0, maxLen - 2) + '…' : sys.name;
     label.textContent = short;
     g.appendChild(label);
+    
+    // Connection count below label for BAS
+    if (isBAS && cc > 0) {
+      const sub = document.createElementNS(NS, 'text');
+      sub.setAttribute('x', pos.x);
+      sub.setAttribute('y', pos.y + 10);
+      sub.setAttribute('fill', '#aaa');
+      sub.setAttribute('font-size', '6');
+      sub.setAttribute('font-weight', '500');
+      sub.setAttribute('text-anchor', 'middle');
+      sub.setAttribute('opacity', '0.6');
+      sub.textContent = `${cc} conn.`;
+      g.appendChild(sub);
+    }
     
     attachNodeEvents(g, sys, pos);
     gNodes.appendChild(g);
@@ -688,7 +692,7 @@ function render() {
   
   // Update stats
   document.getElementById('stats-line').textContent = 
-    `${visible.length} systems · ${EDGES.filter(([s,t]) => nodePositions[s] && nodePositions[t]).length} connections · ${categories.length} categories`;
+    `${visible.length} systems · ${EDGES.filter(([s,t]) => nodePositions[s] && nodePositions[t]).length} connections · ${catKeys.length} categories`;
 }
 
 function attachNodeEvents(el, sys, pos) {
@@ -777,18 +781,19 @@ document.getElementById('btn-reset').addEventListener('click', () => {
 
 // ─── LEGEND ──────────────────────────────────────────────────────
 const legend = document.getElementById('legend');
-legend.innerHTML = `<div class="legend-title">Categories</div>` +
+legend.innerHTML = '<div class="legend-title">Categories</div>' +
   categories.map(c => {
     const cnt = systems.filter(s => s.category === c).length;
-    return `<div class="legend-item" data-cat="${c}">
-      <div class="swatch" style="background:${CAT_COLORS[c] || '#666'}"></div>
-      <span>${c.length > 30 ? c.slice(0, 28) + '…' : c}</span>
-      <span class="count">${cnt}</span>
-    </div>`;
+    return '<div class="legend-item" data-cat="' + c + '">' +
+      '<div class="swatch" style="background:' + (CAT_COLORS[c] || '#666') + '"></div>' +
+      '<span>' + (c.length > 30 ? c.slice(0, 28) + '…' : c) + '</span>' +
+      '<span class="count">' + cnt + '</span>' +
+    '</div>';
   }).join('') +
-  `<div style="margin-top:8px;padding-top:6px;border-top:1px solid #2a2a44;font-size:9px;color:#555">
-    <span style="color:#e8735a">★</span> = Mission Critical &nbsp; Click node to highlight
-  </div>`;
+  '<div style="margin-top:8px;padding-top:6px;border-top:1px solid #2a2a44;font-size:9px;color:#555">' +
+    '<span style="color:#e8735a">★</span> = Mission Critical &nbsp;&nbsp; Click node to highlight<br>' +
+    '<span style="color:#5a5a7a">┅</span> = Cross-category link &nbsp; <span style="color:#E8735A">━</span> = Same-category link' +
+  '</div>';
 
 legend.querySelectorAll('.legend-item').forEach(el => {
   el.addEventListener('click', () => {
