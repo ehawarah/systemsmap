@@ -87,7 +87,7 @@
   /* ── SVG CANVAS ── */
   #canvas-container {
     position: absolute;
-    top: 48px;
+    top: 0;
     left: 0;
     right: 0;
     bottom: 0;
@@ -162,13 +162,7 @@
 </head>
 <body>
 <div id="page-frame">
-  <div class="header-bar">
-    <div class="header-accent"></div>
-    <h1>All System Connections</h1>
-  </div>
-  <div class="controls">
-    <button id="btn-reset">Reset</button>
-  </div>
+
   <div id="canvas-container">
     <svg id="main-svg"></svg>
   </div>
@@ -729,12 +723,6 @@ function attachNodeEvents(el, sys, pos) {
     render();
   });
 }
-
-// ─── CONTROLS ────────────────────────────────────────────────────
-document.getElementById('btn-reset').addEventListener('click', () => {
-  filterCat = 'All'; filterOwner = 'All'; reqOnly = false; highlightSystem = null;
-  render();
-});
 
 // ─── LEGEND ──────────────────────────────────────────────────────
 const legend = document.getElementById('legend');
