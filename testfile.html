@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>System Integration Map</title>
+<title>All System Connections</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
   
@@ -16,344 +16,364 @@
     overflow: hidden;
     width: 100vw;
     height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
-  #canvas-container {
+  #page-frame {
     position: relative;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 56.25vw; /* 16:9 */
+    max-height: 100vh;
+    max-width: 177.78vh; /* 16:9 inverse */
+    background: #0d0d1a;
+    overflow: hidden;
   }
-  
-  svg { width: 100%; height: 100%; }
-  
+
+  /* ── HEADER BAR ── matches Power BI template */
+  .header-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    z-index: 60;
+    background: linear-gradient(180deg, #111126 0%, #0d0d1aee 100%);
+  }
+  .header-bar h1 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #e0e0e0;
+    letter-spacing: 0.02em;
+  }
+  .header-accent {
+    width: 10px;
+    height: 10px;
+    background: #E8735A;
+    border-radius: 50%;
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+
+  /* ── CONTROLS ── styled to match Power BI filter pills */
+  .controls {
+    position: absolute;
+    top: 8px;
+    right: 20px;
+    display: flex;
+    gap: 6px;
+    z-index: 60;
+    align-items: center;
+    height: 48px;
+  }
+  .controls select { display: none; }
+  .controls button {
+    background: #16162a;
+    color: #bbb;
+    border: 1px solid #2a2a44;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    white-space: nowrap;
+  }
+  .controls button:hover { background: #1e1e38; border-color: #3a3a5a; }
+  .controls button.active { background: #e8735a22; border-color: #e8735a66; color: #E8735A; }
+
+  /* ── SVG CANVAS ── */
+  #canvas-container {
+    position: absolute;
+    top: 48px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+  svg { width: 100%; height: 100%; display: block; }
+
+  /* ── TOOLTIP ── */
   .tooltip {
     position: fixed;
     pointer-events: none;
-    background: #1a1a2eee;
-    border: 1px solid #333;
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: 12px;
+    background: #13132aee;
+    border: 1px solid #2a2a44;
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 11px;
     line-height: 1.6;
-    max-width: 300px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    max-width: 280px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
     opacity: 0;
     transition: opacity 0.15s;
     z-index: 100;
   }
   .tooltip.visible { opacity: 1; }
-  .tooltip .tt-name { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
-  .tooltip .tt-cat { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 6px; }
-  .tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; }
-  .tooltip .tt-label { color: #888; }
+  .tooltip .tt-name { font-weight: 700; font-size: 12px; margin-bottom: 3px; }
+  .tooltip .tt-cat { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.5; margin-bottom: 5px; }
+  .tooltip .tt-row { display: flex; justify-content: space-between; gap: 10px; }
+  .tooltip .tt-label { color: #777; }
   .tooltip .tt-val { font-weight: 600; }
-  .tooltip .tt-mc { color: #e8735a; font-weight: 700; font-size: 11px; margin-top: 4px; }
-  
+  .tooltip .tt-req { color: #E8735A; font-weight: 600; font-size: 10px; margin-top: 4px; }
+
+  /* ── LEGEND ── */
   .legend {
-    position: fixed;
-    bottom: 16px;
+    position: absolute;
+    bottom: 12px;
     left: 16px;
-    background: #12121ecc;
-    backdrop-filter: blur(12px);
+    background: #111126dd;
     border: 1px solid #2a2a44;
-    border-radius: 12px;
-    padding: 14px 18px;
-    font-size: 11px;
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 10px;
     z-index: 50;
-    max-height: 60vh;
-    overflow-y: auto;
   }
   .legend-title {
-    font-size: 9px;
+    font-size: 8px;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: #666;
-    margin-bottom: 8px;
+    color: #555;
+    margin-bottom: 6px;
   }
   .legend-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 2px 0;
-    color: #aaa;
+    gap: 7px;
+    padding: 1.5px 0;
+    color: #999;
     cursor: pointer;
     transition: opacity 0.2s;
   }
-  .legend-item:hover { opacity: 1; }
+  .legend-item:hover { opacity: 1; color: #ccc; }
   .legend-item .swatch {
-    width: 10px;
-    height: 10px;
-    border-radius: 3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
     flex-shrink: 0;
   }
-  .legend-item .count {
-    margin-left: auto;
-    color: #555;
-    font-size: 10px;
-  }
-  
-  .controls {
-    position: fixed;
-    top: 16px;
-    left: 16px;
-    display: flex;
-    gap: 8px;
-    z-index: 50;
-    flex-wrap: wrap;
-  }
-  .controls select {
-    background: #1a1a2e;
-    color: #ccc;
-    border: 1px solid #2a2a44;
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 12px;
-    font-family: 'DM Sans', sans-serif;
-    cursor: pointer;
-  }
-  .controls button {
-    background: #1a1a2e;
-    color: #ccc;
-    border: 1px solid #2a2a44;
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-size: 12px;
-    font-family: 'DM Sans', sans-serif;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .controls button:hover { background: #2a2a44; }
-  .controls button.active { background: #e8735a33; border-color: #e8735a55; color: #e8735a; }
-  
-  .title-bar {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    text-align: right;
-    z-index: 50;
-  }
-  .title-bar h1 {
-    font-size: 16px;
-    font-weight: 700;
-    color: #e0e0e0;
-  }
-  .title-bar h1 span { color: #e8735a; }
-  .title-bar p { font-size: 10px; color: #555; margin-top: 2px; }
-  
-  .hex-node { transition: opacity 0.3s, transform 0.3s; }
+
+
+  .hex-node { transition: opacity 0.3s; cursor: pointer; }
   .hex-node:hover { filter: brightness(1.3); }
   .connection-line { transition: opacity 0.3s; }
-  
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
 </head>
 <body>
+<div id="page-frame">
+  <div class="header-bar">
+    <div class="header-accent"></div>
+    <h1>All System Connections</h1>
+  </div>
+  <div class="controls">
+    <button id="btn-reset">Reset</button>
+  </div>
+  <div id="canvas-container">
+    <svg id="main-svg"></svg>
+  </div>
+  <div class="legend" id="legend"></div>
 
-<div class="title-bar">
-  <h1><span>●</span> System Integration Map</h1>
-  <p id="stats-line"></p>
+  <div class="tooltip" id="tooltip"></div>
 </div>
-
-<div class="controls">
-  <select id="filter-cat">
-    <option value="All">All Categories</option>
-  </select>
-  <select id="filter-owner">
-    <option value="All">All Owners</option>
-  </select>
-  <button id="btn-mc">★ Mission Critical Only</button>
-  <button id="btn-reset">Reset View</button>
-</div>
-
-<div id="canvas-container">
-  <svg id="main-svg"></svg>
-</div>
-
-<div class="legend" id="legend"></div>
-<div class="tooltip" id="tooltip"></div>
 
 <script>
-// ─── DATA ────────────────────────────────────────────────────────
-const SYSTEMS = [
-["Building Automation System (BAS)","Gautham Sunkara","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["UPS Monitoring","Melissa Chong","Core Building Autonomy (MEP & Energy)",false,""],
-["Heat Recovery Chiller","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Variable Frequency Drives","Gautham Sunkara","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Digital Integration Platform","","Digital Integration & Platform",false,"Included in the Design"],
-["Independent Data Layer (IDL)","","Digital Integration & Platform",false,"Included in the Design"],
-["Analytics & Insights","","Digital Integration & Platform",false,"Included in the Design"],
-["Event Management and Rule Execution","","Digital Integration & Platform",false,"Included in the Design"],
-["Cognitive Automation and Agentic AI","","Digital Integration & Platform",false,"Future"],
-["Cyber Security & Resilience","","Digital Integration & Platform",false,""],
-["AV Systems","","Workplace Experience & Logistics",false,"Included in the Design"],
-["Digital Signage Systems","","Workplace Experience & Logistics",false,"Included in the Design"],
-["IPTV and Digital Distribution Systems","","Workplace Experience & Logistics",false,"Included in the Design"],
-["Video Conference System","","Workplace Experience & Logistics",false,"Anticipated for Day 1"],
-["Room Scheduling Systems","","Workplace Experience & Logistics",false,"Included in the Design"],
-["Custom Video Wall Systems","","Workplace Experience & Logistics",false,"Included in the Design"],
-["Flexible Interconnect AV Distribution System","","Workplace Experience & Logistics",false,"Included in the Design"],
-["Water-Based Fire-Suppression Water Supply","","",false,""],
-["Wet Pipe Sprinkler System","Michael Harris","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Preaction Sprinkler System","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Future"],
-["Clean Agent Fire Extinguishing System","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Lab Equipment","Heather Jutila","Vivarium & Biocontainment Systems",true,"Included in the Design"],
-["Freezer / Ice machine / Incubators","Melissa Chong (Site Ops)/Heather Jutila (gRED)","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Biological Safety Cabinets","Melissa Chong (Site Ops)/Heather Jutila (gRED)","Vivarium & Biocontainment Systems",true,"Included in the Design"],
-["Laboratory Fume Hoods","Melissa Chong (Site Ops)/Heather Jutila (gRED)","Vivarium & Biocontainment Systems",true,"Included in the Design"],
-["Airflow Monitoring and Alarm System","Heather Jutila","Vivarium & Biocontainment Systems",true,"Included in the Design"],
-["Auto Sash Operator and Controller","Heather Jutila","Vivarium & Biocontainment Systems",false,""],
-["RODENT HOUSING EQUIPMENT","Heather Jutila","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Individually Ventilated Cage (IVC)","Heather Jutila","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Animal Transfer Station (ATS)","Heather Jutila","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["CAGE PROCESSING EQUIPMENT","Heather Jutila","Vivarium & Biocontainment Systems",true,"Included in the Design"],
-["Cage & Rack Washer","Heather Jutila","Vivarium & Biocontainment Systems",true,"Included in the Design"],
-["Tunnel Washer","Heather Jutila","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Automated Soiled (Dirty Side) Bedding Disposal System","Heather Jutila","Vivarium & Biocontainment Systems",true,"Anticipated for Day 1"],
-["Automated Fresh (Clean Side) Bedding Dispensing System","Heather Jutila","Vivarium & Biocontainment Systems",true,"Anticipated for Day 1"],
-["Automated Cage Process System","Heather Jutila","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Robotic Automation System","","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Automated Bottle Washing and Filling System","Heather Jutila","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Animal Drinking Water Pouch System","Heather Jutila","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Steam Sterilizer/Dry Heat Sterilizer","Melissa Chong (Site Ops)/Heather Jutila (gRED)","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Animal Monitoring/Tracking Systems","Heather Jutila","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Animal Feeding System","Heather Jutila","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Lab Elevator Systems","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Passenger Elevators","Melissa Chong","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Service Elevators","Melissa Chong","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Vivarium Elevator Systems","Melissa Chong (Site Ops)/Heather Jutila (gRED)","Vivarium & Biocontainment Systems",true,"Included in the Design"],
-["Passenger Elevators (Viv)","Melissa Chong (Site Ops)/Heather Jutila (gRED)","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Service Elevators (Viv)","Melissa Chong (Site Ops)/Heather Jutila (gRED)","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Power Distribution System","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Future"],
-["Lighting Controls","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Window Treatments","Melissa Chong","Workplace Experience & Logistics",false,"Included in the Design"],
-["Electrified Door Hardware","Philip Moul","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["Electronic access control system","Philip Moul","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["Controlled Environmental Rooms","Melissa Chong","Vivarium & Biocontainment Systems",true,"Included in the Design"],
-["Security Center","Philip Moul","Security, Safety & Health (SSHE)",false,""],
-["Access Control and Alarm Monitoring (ACAMS)","Philip Moul","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["Video Surveillance Systems (VSS)","Philip Moul","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["Video Management System (VMS)","Philip Moul","Security, Safety & Health (SSHE)",false,"Anticipated for Day 1"],
-["Genetec Omnicast and AutoVu","Philip Moul","Security, Safety & Health (SSHE)",true,""],
-["Network Video Recorders (NVR)","Philip Moul","Security, Safety & Health (SSHE)",false,""],
-["Genetec Stream Vault","Philip Moul","Security, Safety & Health (SSHE)",true,""],
-["Cameras","Philip Moul","Security, Safety & Health (SSHE)",false,""],
-["Security Communications Systems (SCS)","Philip Moul","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["Electronic Security Systems (ESS)","Philip Moul","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["SIP-based IP intercom","Philip Moul","Security, Safety & Health (SSHE)",false,""],
-["blue light emergency communication devices","Philip Moul","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["ClearID","","Enterprise IT",true,"Included in the Design"],
-["Synergis / Alarm Management Platforms","Gautham Sunkara","Security, Safety & Health (SSHE)",true,"Anticipated for Day 1"],
-["Fire Detection and Alarm","Michael Harris","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["smoke detectors","Michael Harris","Security, Safety & Health (SSHE)",false,""],
-["heat detectors","Michael Harris","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["duct detectors","Michael Harris","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["audio/visual signaling devices","Michael Harris","Security, Safety & Health (SSHE)",false,""],
-["manual pull stations","Michael Harris","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["Gas Detection and Alarm","Michael Harris","Security, Safety & Health (SSHE)",true,"Included in the Design"],
-["Refrigeration Detection and Alarm","","Security, Safety & Health (SSHE)",false,""],
-["Emergency voice alarm communication system","Philip Moul","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["Facility Power Generation","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["emergency Power supply System (EPSS)","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Battery Energy Storage Systems (BESS)","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Future"],
-["Electrical Service and Distribution","Melissa Chong","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Automation Controls and SCADA","Gautham Sunkara","Core Building Autonomy (MEP & Energy)",false,""],
-["Electrical Metering/Sub-Metering","Behzad T.","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Power Monitoring Meters","","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Facility Fuel Systems","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Heat Generation","","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Thermal Heat Storage","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Facility Hydronic Distribution","","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Refrigerated & Heating Hot Water System","","Core Building Autonomy (MEP & Energy)",false,""],
-["Cyclotron Refrigerated Water System","","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Facility Steam Distribution","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["HVAC Air Distribution","Melissa Chong","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Exhaust Abatement","Michael Harris","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Cyclotron Exhaust System","Melissa Chong","Core Building Autonomy (MEP & Energy)",false,""],
-["H-Occupancy Exhaust Air System","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Air Quality Monitoring System","Melissa Chong","Security, Safety & Health (SSHE)",true,"Included in the Design"],
-["Temperature sensor","Melissa Chong","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["Relative humidity sensor","Melissa Chong","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["TVOC sensor","Melissa Chong","Security, Safety & Health (SSHE)",false,""],
-["Particulate Matter Sensor","Melissa Chong","Security, Safety & Health (SSHE)",false,""],
-["Carbon dioxide sensor","Melissa Chong","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["Nitrogen Dioxide Sensor","Melissa Chong","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["Atmospheric Pressure","Melissa Chong","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["Light sensor","Melissa Chong","Security, Safety & Health (SSHE)",true,"Included in the Design"],
-["Occupancy sensor","Melissa Chong","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["IAQ sensor","Melissa Chong","Security, Safety & Health (SSHE)",true,"Included in the Design"],
-["Animal Drinking Water","Heather Jutila","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Autonomous guided vehicle systems","","Scientific Automation & Robotics (Lab)",false,"Included in the Design"],
-["ABSL-3 Specialized Air Handling","Melissa Chong (Site Ops)/Heather Jutila (gRED)","",false,"Included in the Design"],
-["Airflow & Pressure Sensors","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["ASRS / Shuttle Systems","","Workplace Experience & Logistics",false,"Anticipated for Day 1"],
-["Computer Room Air Conditioners (CRAC/CRAH)","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Controlled Environmental Rooms (HVAC)","Melissa Chong","Vivarium & Biocontainment Systems",true,"Included in the Design"],
-["Critical Environment Controls","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Leak Detection","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Backbone Distribution","","Enterprise IT",false,"Included in the Design"],
-["Data Integration Layer / APIs","","Enterprise IT",false,"Included in the Design"],
-["Mobile Applications","","Enterprise IT",false,"Included in the Design"],
-["Analytics & Dashboards","","Enterprise IT",false,"Included in the Design"],
-["Smart Building / BMS Platforms","","Enterprise IT",false,"Included in the Design"],
-["IoT Device Management Platform","","Enterprise IT",false,"Included in the Design"],
-["Collaboration & Meeting Platforms","","Enterprise IT",false,"Included in the Design"],
-["Main Distribution Frame (MDF)","","Enterprise IT",false,"Included in the Design"],
-["Core Network Backbone","","Enterprise IT",false,"Included in the Design"],
-["Network & Security Platforms","","Enterprise IT",false,"Included in the Design"],
-["Wireless Networks","","Enterprise IT",false,"Included in the Design"],
-["Secure Vendor / Remote Access","","Enterprise IT",false,"Included in the Design"],
-["Network Monitoring & Redundancy","","Enterprise IT",false,"Included in the Design"],
-["Non-Potable Reclaim Water","Behzad T.","Core Building Autonomy (MEP & Energy)",false,""],
-["Facility Data Historian (FDH)","Gautham Sunkara","Digital Integration & Platform",false,"Included in the Design"],
-["Processed Water/Water Treatment","Melissa Chong","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Domestic/Industrial Water Distribution","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Janitorial & Office Supply Flow","Melissa Chong","Workplace Experience & Logistics",false,"Included in the Design"],
-["Gas Systems","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Carbon Dioxide","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Helium Recovery System","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Gaseous Nitrogen","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Liquid Nitrogen","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Oxygen","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Specialty Gases","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Hydrogen","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Chemical Waste Systems","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Laboratory and Vivarium Vacuum","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Lab and Vivarium Compressed Air","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Processed Water Systems","Melissa Chong","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Reagent Stores & Solvent Dispensing","Melissa Chong","Scientific Automation & Robotics (Lab)",true,"Included in the Design"],
-["Water Metering/Sub-Metering","Behzad T.","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Campus Lockdown System","Philip Moul","Security, Safety & Health (SSHE)",false,""],
-["Pre-order kiosks","","Workplace Experience & Logistics",false,"Included in the Design"],
-["Gaseous Decontamination Chambers","Melissa Chong","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Fault Detection / Preventative Maintenance","Melissa Chong","Core Building Autonomy (MEP & Energy)",false,"Included in the Design"],
-["Laboratory Sterilizers","Melissa Chong (Site Ops)/Heather Jutila (gRED)","Scientific Automation & Robotics (Lab)",false,"Included in the Design"],
-["Employee Health Pods","","Workplace Experience & Logistics",false,"Included in the Design"],
-["Personal Lockers","","Workplace Experience & Logistics",false,"Included in the Design"],
-["Wayfinding","","Workplace Experience & Logistics",false,""],
-["Weapons Detection","Philip Moul","Security, Safety & Health (SSHE)",false,""],
-["Access Code Governance","Philip Moul","Security, Safety & Health (SSHE)",false,"Included in the Design"],
-["Vehicle Charging Equipment (EV)","","Workplace Experience & Logistics",false,"Included in the Design"],
-["Valet System","","Workplace Experience & Logistics",false,""],
-["Sound Masking","","Workplace Experience & Logistics",false,"Included in the Design"],
-["Location Tracking Systems (RTLS)","Philip Moul","Workplace Experience & Logistics",false,"Included in the Design"],
-["Vivarium Hygiene Barrier Access","Heather Jutila","Vivarium & Biocontainment Systems",false,"TBD/Unknown"],
-["Vivarium Logistics & Management","Melissa Chong (Site Ops)/Heather Jutila (gRED)","Vivarium & Biocontainment Systems",true,""],
-["Vivarium Waste Management","","Vivarium & Biocontainment Systems",false,"TBD/Unknown"],
-["ESG Platform","Michael Harris","Core Building Autonomy (MEP & Energy)",false,""],
-["Mail Room Management","Jozef Bolech","Workplace Experience & Logistics",false,"Included in the Design"],
-["Asset Management","Melissa Chong","Workplace Experience & Logistics",false,"Anticipated for Day 1"],
-["IWMS / CMMS","Melissa Chong","Core Building Autonomy (MEP & Energy)",false,""],
-["Drone & Robot Security Patrols","","Security, Safety & Health (SSHE)",false,""],
-["Emergency Services Staging","Philip Moul","Security, Safety & Health (SSHE)",false,""],
-["Stormwater Control System","Michael Harris","Core Building Autonomy (MEP & Energy)",false,""],
-["Aquatics Environmental Support","Heather Jutila","Vivarium & Biocontainment Systems",false,"Included in the Design"],
-["Master Clock Systems","Heather Jutila","Scientific Automation & Robotics (Lab)",false,"Included in the Design"],
-["Air Handler Units (AHUs)","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"],
-["Airflow & Pressure Sensors (HVAC)","Melissa Chong","Core Building Autonomy (MEP & Energy)",true,"Included in the Design"]
-];
+// ─── PARSE CSV DATA ──────────────────────────────────────────────
+const CSV_RAW = `System Name / ID,OWNER,Category,Required Connections to Other Systems
+Building Automation System (BAS),Gautham Sunkara,Core Building Autonomy (MEP & Energy),
+UPS Monitoring,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Heat Recovery Chiller,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Variable Frequency Drives,Gautham Sunkara,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Digital Integration Platform,,Digital Integration & Platform,"Building Automation System (BAS), robotics, specialized lab equipment, environmental controls, building systems, vivarium environments, and logistics operations"
+Independent Data Layer (IDL),,Digital Integration & Platform,Digital Integration Platform
+Analytics & Insights,,Digital Integration & Platform,Digital Integration Platform
+Event Management and Rule Execution,,Digital Integration & Platform,"external workflow and ticketing platforms"
+Cognitive Automation and Agentic AI,,Digital Integration & Platform,"Third-party AI frameworks or APIs"
+Cyber Security & Resilience,,Digital Integration & Platform,"Single Sign-On (SSO), Active Directory"
+AV Systems,,Workplace Experience & Logistics,
+Digital Signage Systems,,Workplace Experience & Logistics,
+IPTV and Digital Distribution Systems,,Workplace Experience & Logistics,
+Video Conference System,,Workplace Experience & Logistics,
+Room Scheduling Systems,,Workplace Experience & Logistics,
+Custom Video Wall Systems,,Workplace Experience & Logistics,
+Flexible Interconnect AV Distribution System,,Workplace Experience & Logistics,
+Water-Based Fire-Suppression Water Supply,,,
+Wet Pipe Sprinkler System,Michael Harris,Core Building Autonomy (MEP & Energy),Fire alarm system
+Preaction Sprinkler System,Melissa Chong,Core Building Autonomy (MEP & Energy),Fire alarm system
+Clean Agent Fire Extinguishing System,Melissa Chong,Core Building Autonomy (MEP & Energy),
+Lab Equipment,Heather Jutila,Vivarium & Biocontainment Systems,
+Freezer / Ice machine / Incubators,Melissa Chong (Site Ops)/Heather Jutila (gRED),Vivarium & Biocontainment Systems,
+Biological Safety Cabinets,Melissa Chong (Site Ops)/Heather Jutila (gRED),Vivarium & Biocontainment Systems,HVAC
+Laboratory Fume Hoods,Melissa Chong (Site Ops)/Heather Jutila (gRED),Vivarium & Biocontainment Systems,BAS
+Airflow Monitoring and Alarm System,Heather Jutila,Vivarium & Biocontainment Systems,Building Automation System (BAS)
+Auto Sash Operator and Controller,Heather Jutila,Vivarium & Biocontainment Systems,passive infrared sensor (PIR)
+RODENT HOUSING EQUIPMENT,Heather Jutila,Vivarium & Biocontainment Systems,Animal Monitoring/Tracking Systems
+Individually Ventilated Cage (IVC),Heather Jutila,Vivarium & Biocontainment Systems,HVAC
+Animal Transfer Station (ATS),Heather Jutila,Vivarium & Biocontainment Systems,HVAC
+CAGE PROCESSING EQUIPMENT,Heather Jutila,Vivarium & Biocontainment Systems,"Animal Watering System, Facility Data Historian (FDH), Fire Alarm, Generator System, Network Lighting Controls, Electrical Control and Monitoring (SCADA)"
+Cage & Rack Washer,Heather Jutila,Vivarium & Biocontainment Systems,"Animal Watering System, Facility Data Historian (FDH), Fire Alarm, Generator System, Network Lighting Controls, Electrical Control and Monitoring (SCADA)"
+Tunnel Washer,Heather Jutila,Vivarium & Biocontainment Systems,Automated Cage Process System
+Automated Soiled (Dirty Side) Bedding Disposal System,Heather Jutila,Vivarium & Biocontainment Systems,"Automated Cage Processing System, Pneumatic Tube Systems"
+Automated Fresh (Clean Side) Bedding Dispensing System,Heather Jutila,Vivarium & Biocontainment Systems,"Tunnel Cage Washer, Automated Cage Processing System"
+Automated Cage Process System,Heather Jutila,Vivarium & Biocontainment Systems,"Tunnel Washer, Automated Fresh (Clean Side) Bedding Dispensing System"
+Robotic Automation System,,Vivarium & Biocontainment Systems,
+Automated Bottle Washing and Filling System,Heather Jutila,Vivarium & Biocontainment Systems,
+Animal Drinking Water Pouch System,Heather Jutila,Vivarium & Biocontainment Systems,Building Automation System (BAS)
+Steam Sterilizer/Dry Heat Sterilizer,Melissa Chong (Site Ops)/Heather Jutila (gRED),Vivarium & Biocontainment Systems,Building Automation System (BAS)
+Animal Monitoring/Tracking Systems,Heather Jutila,Vivarium & Biocontainment Systems,Animal Housing Equipment
+Animal Feeding System,Heather Jutila,Vivarium & Biocontainment Systems,
+Lab Elevator Systems,Melissa Chong,Core Building Autonomy (MEP & Energy),
+Passenger Elevators,Melissa Chong,Core Building Autonomy (MEP & Energy),
+Service Elevators,Melissa Chong,Core Building Autonomy (MEP & Energy),
+Vivarium Elevator Systems,Melissa Chong (Site Ops)/Heather Jutila (gRED),Vivarium & Biocontainment Systems,Facility Data Historian (FDH)
+Passenger Elevators (Viv),Melissa Chong (Site Ops)/Heather Jutila (gRED),Vivarium & Biocontainment Systems,
+Service Elevators (Viv),Melissa Chong (Site Ops)/Heather Jutila (gRED),Vivarium & Biocontainment Systems,
+Power Distribution System,Melissa Chong,Core Building Autonomy (MEP & Energy),Lighting Controls
+Lighting Controls,Melissa Chong,Core Building Autonomy (MEP & Energy),"Power Distribution System, Building Automation System (BAS)"
+Window Treatments,Melissa Chong,Workplace Experience & Logistics,
+Electrified Door Hardware,Philip Moul,"Security, Safety & Health (SSHE)",
+Electronic access control system,Philip Moul,"Security, Safety & Health (SSHE)",Electrified Door Hardware
+Controlled Environmental Rooms,Melissa Chong,Vivarium & Biocontainment Systems,HVAC Air Distribution
+Security Center,Philip Moul,"Security, Safety & Health (SSHE)",
+Access Control and Alarm Monitoring (ACAMS),Philip Moul,"Security, Safety & Health (SSHE)",ClearID
+Video Surveillance Systems (VSS),Philip Moul,"Security, Safety & Health (SSHE)",
+Video Management System (VMS),Philip Moul,"Security, Safety & Health (SSHE)","Genetec Omnicast and AutoVu, Access Control and Alarm Monitoring (ACAMS), Security Communications Systems (SCS)"
+Genetec Omnicast and AutoVu,Philip Moul,"Security, Safety & Health (SSHE)",VMS
+Network Video Recorders (NVR),Philip Moul,"Security, Safety & Health (SSHE)",
+Genetec Stream Vault,Philip Moul,"Security, Safety & Health (SSHE)",
+Cameras,Philip Moul,"Security, Safety & Health (SSHE)",
+Security Communications Systems (SCS),Philip Moul,"Security, Safety & Health (SSHE)","Access Control and Alarm Monitoring (ACAMS), Video Surveillance Systems (VSS)"
+Electronic Security Systems (ESS),Philip Moul,"Security, Safety & Health (SSHE)",
+SIP-based IP intercom,Philip Moul,"Security, Safety & Health (SSHE)",
+blue light emergency communication devices,Philip Moul,"Security, Safety & Health (SSHE)",
+ClearID,,Enterprise IT,"Workday, CIDM, ACAMS and EPP"
+Synergis / Alarm Management Platforms,Gautham Sunkara,"Security, Safety & Health (SSHE)","Security Center, ClearID"
+Fire Detection and Alarm,Michael Harris,"Security, Safety & Health (SSHE)","water flow switches, elevators, HVAC smoke control, smoke fire dampers, Building Automation System (BAS)"
+smoke detectors,Michael Harris,"Security, Safety & Health (SSHE)",
+heat detectors,Michael Harris,"Security, Safety & Health (SSHE)",
+duct detectors,Michael Harris,"Security, Safety & Health (SSHE)",
+audio/visual signaling devices,Michael Harris,"Security, Safety & Health (SSHE)",
+manual pull stations,Michael Harris,"Security, Safety & Health (SSHE)",
+Gas Detection and Alarm,Michael Harris,"Security, Safety & Health (SSHE)",
+Refrigeration Detection and Alarm,,"Security, Safety & Health (SSHE)",
+Emergency voice alarm communication system,Philip Moul,"Security, Safety & Health (SSHE)",Fire Alarm
+Facility Power Generation,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+emergency Power supply System (EPSS),Melissa Chong,Core Building Autonomy (MEP & Energy),
+Battery Energy Storage Systems (BESS),Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Electrical Service and Distribution,Melissa Chong,Core Building Autonomy (MEP & Energy),"Facility Data Historian (FDH), Computerized Maintenance Management System (CMMS)"
+Automation Controls and SCADA,Gautham Sunkara,Core Building Autonomy (MEP & Energy),"Building Automation System (BAS), Facility Data Historian (FDH), Generator System"
+Electrical Metering/Sub-Metering,Behzad T.,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Power Monitoring Meters,,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Facility Fuel Systems,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Heat Generation,,Core Building Autonomy (MEP & Energy),
+Thermal Heat Storage,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Facility Hydronic Distribution,,Core Building Autonomy (MEP & Energy),
+Refrigerated & Heating Hot Water System,,Core Building Autonomy (MEP & Energy),
+Cyclotron Refrigerated Water System,,Core Building Autonomy (MEP & Energy),
+Facility Steam Distribution,Melissa Chong,Core Building Autonomy (MEP & Energy),
+HVAC Air Distribution,Melissa Chong,Core Building Autonomy (MEP & Energy),
+Exhaust Abatement,Michael Harris,Core Building Autonomy (MEP & Energy),
+Cyclotron Exhaust System,Melissa Chong,Core Building Autonomy (MEP & Energy),
+H-Occupancy Exhaust Air System,Melissa Chong,Core Building Autonomy (MEP & Energy),
+Air Quality Monitoring System,Melissa Chong,"Security, Safety & Health (SSHE)",Building Automation System (BAS)
+Temperature sensor,Melissa Chong,"Security, Safety & Health (SSHE)",Building Automation System (BAS)
+Relative humidity sensor,Melissa Chong,"Security, Safety & Health (SSHE)",Building Automation System (BAS)
+TVOC sensor,Melissa Chong,"Security, Safety & Health (SSHE)",Building Automation System (BAS)
+Particulate Matter Sensor,Melissa Chong,"Security, Safety & Health (SSHE)",
+Carbon dioxide sensor,Melissa Chong,"Security, Safety & Health (SSHE)",Building Automation System (BAS)
+Nitrogen Dioxide Sensor,Melissa Chong,"Security, Safety & Health (SSHE)",
+Atmospheric Pressure,Melissa Chong,"Security, Safety & Health (SSHE)",
+Light sensor,Melissa Chong,"Security, Safety & Health (SSHE)","Facility Data Historian (FDH), Building Automation System (BAS)"
+Occupancy sensor,Melissa Chong,"Security, Safety & Health (SSHE)",
+IAQ sensor,Melissa Chong,"Security, Safety & Health (SSHE)",Building Automation System (BAS)
+Animal Drinking Water,Heather Jutila,Vivarium & Biocontainment Systems,Building Automation System (BAS)
+Autonomous guided vehicle systems,,Scientific Automation & Robotics (Lab),"Access Control and Alarm Monitoring, Elevator Equipment and Controls, Laboratory Robotics"
+ABSL-3 Specialized Air Handling,Melissa Chong (Site Ops)/Heather Jutila (gRED),,
+Airflow & Pressure Sensors,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+ASRS / Shuttle Systems,,Workplace Experience & Logistics,"Building Automation System (BAS), Digital Integration Platform, Enterprise Resource Platform (ERP)"
+Computer Room Air Conditioners (CRAC/CRAH),Melissa Chong,Core Building Autonomy (MEP & Energy),"Intermediate Distribution Frame (IDF), Main Distribution Frame (MDF)"
+Controlled Environmental Rooms (HVAC),Melissa Chong,Vivarium & Biocontainment Systems,
+Critical Environment Controls,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Leak Detection,Melissa Chong,Core Building Autonomy (MEP & Energy),"Facility Data Historian (FDH), Building Automation System (BAS)"
+Backbone Distribution,,Enterprise IT,
+Data Integration Layer / APIs,,Enterprise IT,"Animal Monitoring/Tracking Systems, Building Automation System (BAS), Vivarium HVAC"
+Mobile Applications,,Enterprise IT,"Animal Monitoring/Tracking Systems, Building Automation System (BAS), Vivarium HVAC"
+Analytics & Dashboards,,Enterprise IT,"Animal Monitoring/Tracking Systems, Building Automation System (BAS), Vivarium HVAC"
+Smart Building / BMS Platforms,,Enterprise IT,"Animal Monitoring/Tracking Systems, Building Automation System (BAS), Vivarium HVAC"
+IoT Device Management Platform,,Enterprise IT,"Animal Monitoring/Tracking Systems, Building Automation System (BAS), Vivarium HVAC"
+Collaboration & Meeting Platforms,,Enterprise IT,"Animal Monitoring/Tracking Systems, Building Automation System (BAS), Vivarium HVAC"
+Main Distribution Frame (MDF),,Enterprise IT,
+Network & Security Platforms,,Enterprise IT,
+Wireless Networks,,Enterprise IT,
+Secure Vendor / Remote Access,,Enterprise IT,
+Network Monitoring & Redundancy,,Enterprise IT,
+Non-Potable Reclaim Water,Behzad T.,Core Building Autonomy (MEP & Energy),
+Facility Data Historian (FDH),Gautham Sunkara,Digital Integration & Platform,Building Automation System (BAS)
+Processed Water/Water Treatment,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Domestic/Industrial Water Distribution,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Janitorial & Office Supply Flow,Melissa Chong,Workplace Experience & Logistics,"Supply Chain Procurement, CMMS, IWMS, ERP"
+Gas Systems,Melissa Chong,Core Building Autonomy (MEP & Energy),
+Carbon Dioxide,Melissa Chong,Core Building Autonomy (MEP & Energy),BAS
+Helium Recovery System,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Gaseous Nitrogen,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Liquid Nitrogen,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Oxygen,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Specialty Gases,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Hydrogen,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Chemical Waste Systems,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Laboratory and Vivarium Vacuum,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Lab and Vivarium Compressed Air,Melissa Chong,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Processed Water Systems,Melissa Chong,Core Building Autonomy (MEP & Energy),
+Reagent Stores & Solvent Dispensing,Melissa Chong,Scientific Automation & Robotics (Lab),"Building Automation System (BAS), Door Interlock Systems, Supply Chain Procurement, LIMS"
+Water Metering/Sub-Metering,Behzad T.,Core Building Autonomy (MEP & Energy),Building Automation System (BAS)
+Campus Lockdown System,Philip Moul,"Security, Safety & Health (SSHE)",Access Control and Alarm Monitoring
+Pre-order kiosks,,Workplace Experience & Logistics,Retail and Service Equipment
+Gaseous Decontamination Chambers,Melissa Chong,Vivarium & Biocontainment Systems,
+Fault Detection / Preventative Maintenance,Melissa Chong,Core Building Autonomy (MEP & Energy),CMMS
+Laboratory Sterilizers,Melissa Chong (Site Ops)/Heather Jutila (gRED),Scientific Automation & Robotics (Lab),Building Automation System (BAS)
+Employee Health Pods,,Workplace Experience & Logistics,
+Personal Lockers,,Workplace Experience & Logistics,
+Wayfinding,,Workplace Experience & Logistics,
+Weapons Detection,Philip Moul,"Security, Safety & Health (SSHE)",
+Access Code Governance,Philip Moul,Security,
+Vehicle Charging Equipment (EV),,Workplace Experience & Logistics,
+Valet System,,Workplace Experience & Logistics,
+Sound Masking,,Workplace Experience & Logistics,
+Location Tracking Systems (RTLS),Philip Moul,Workplace Experience & Logistics,
+Vivarium Hygiene Barrier Access,Heather Jutila,Vivarium & Biocontainment Systems,
+Vivarium Logistics & Management,Melissa Chong (Site Ops)/Heather Jutila (gRED),Vivarium & Biocontainment Systems,CMMS
+Vivarium Waste Management,,Vivarium & Biocontainment Systems,
+ESG Platform,Michael Harris,Core Building Autonomy (MEP & Energy),
+Mail Room Management,Jozef Bolech,Workplace Experience & Logistics,
+Asset Management,Melissa Chong,Workplace Experience & Logistics,CMMS
+IWMS / CMMS,Melissa Chong,Core Building Autonomy (MEP & Energy),
+Drone & Robot Security Patrols,,"Security, Safety & Health (SSHE)",
+Emergency Services Staging,Philip Moul,"Security, Safety & Health (SSHE)",
+Stormwater Control System,Michael Harris,Core Building Autonomy (MEP & Energy),
+Aquatics Environmental Support,Heather Jutila,Vivarium & Biocontainment Systems,
+Master Clock Systems,Heather Jutila,Scientific Automation & Robotics (Lab),
+Air Handler Units (AHUs),Melissa Chong,Core Building Autonomy (MEP & Energy),BAS
+Airflow & Pressure Sensors (HVAC),Melissa Chong,Core Building Autonomy (MEP & Energy),BAS`;
 
-// Edges: [sourceIdx, targetIdx]
-const EDGES = [[1,0],[2,0],[3,0],[4,21],[5,4],[6,4],[25,0],[27,40],[30,49],[30,129],[31,49],[31,129],[32,35],[35,34],[38,0],[39,0],[45,129],[48,49],[52,51],[53,91],[55,66],[57,62],[57,58],[57,55],[62,56],[62,55],[67,66],[67,54],[77,0],[79,0],[80,129],[81,0],[81,129],[82,0],[83,0],[84,0],[86,0],[95,0],[96,0],[97,0],[98,0],[100,0],[103,0],[103,129],[105,0],[106,0],[110,0],[110,4],[111,122],[113,0],[114,0],[114,129],[116,0],[116,40],[117,0],[117,40],[118,0],[118,40],[119,0],[119,40],[120,0],[120,40],[121,0],[121,40],[129,0],[130,0],[131,0],[135,0],[136,0],[137,0],[138,0],[139,0],[140,0],[141,0],[142,0],[143,0],[145,0],[146,0],[151,0],[174,0]];
+function parseCSV(raw) {
+  const lines = raw.trim().split('\n');
+  const data = [];
+  for (let i = 1; i < lines.length; i++) {
+    const row = [];
+    let cur = '', inQuotes = false;
+    for (let j = 0; j < lines[i].length; j++) {
+      const ch = lines[i][j];
+      if (ch === '"') { inQuotes = !inQuotes; }
+      else if (ch === ',' && !inQuotes) { row.push(cur.trim()); cur = ''; }
+      else { cur += ch; }
+    }
+    row.push(cur.trim());
+    data.push(row);
+  }
+  return data;
+}
+
+const rows = parseCSV(CSV_RAW);
 
 const CAT_COLORS = {
   "Core Building Autonomy (MEP & Energy)": "#E8735A",
@@ -364,19 +384,67 @@ const CAT_COLORS = {
   "Security, Safety & Health (SSHE)": "#5BA08A",
   "Vivarium & Biocontainment Systems": "#C47AB3",
   "Workplace Experience & Logistics": "#7EAED4",
-  "": "#666"
+  "": "#555"
 };
 
-// ─── SETUP ───────────────────────────────────────────────────────
-const svg = document.getElementById('main-svg');
-const tooltip = document.getElementById('tooltip');
-const NS = 'http://www.w3.org/2000/svg';
-
-// Parse systems — BAS is now just a regular system (index 0)
-const systems = SYSTEMS.map((s, i) => ({
-  idx: i, name: s[0], owner: s[1], category: s[2] || 'Uncategorized',
-  mc: s[3], status: s[4]
+// Build systems array
+const systems = rows.map((r, i) => ({
+  idx: i,
+  name: r[0] || '',
+  owner: r[1] || '',
+  category: r[2] || 'Uncategorized',
+  reqRaw: r[3] || '',
+  hasRequired: !!(r[3] && r[3].trim().length > 0)
 }));
+
+// ─── BUILD EDGES by name-matching ────────────────────────────────
+// Create a lookup from system name (lowercased) to index
+const nameLookup = {};
+systems.forEach((s, i) => {
+  const key = s.name.toLowerCase().trim();
+  nameLookup[key] = i;
+});
+// Also add common abbreviations
+const aliases = {
+  'bas': 0, 'building automation system': 0, 'building automtion system': 0, 'building automtion system (bas)': 0,
+};
+systems.forEach((s, i) => {
+  // add short forms
+  const n = s.name.toLowerCase().trim();
+  if (!aliases[n]) aliases[n] = i;
+});
+
+function findSystemIndex(text) {
+  const t = text.toLowerCase().trim();
+  // Direct match
+  if (nameLookup[t] !== undefined) return nameLookup[t];
+  if (aliases[t] !== undefined) return aliases[t];
+  // Partial match - find system whose name contains this text or vice versa
+  for (const [key, idx] of Object.entries(nameLookup)) {
+    if (key.includes(t) || t.includes(key)) return idx;
+  }
+  return -1;
+}
+
+const EDGES = [];
+const edgeSet = new Set();
+systems.forEach((sys, i) => {
+  if (!sys.reqRaw) return;
+  // Split on comma but be careful of quoted sections
+  const parts = sys.reqRaw.split(/,\s*(?![^()]*\))/);
+  parts.forEach(part => {
+    const cleaned = part.replace(/^and\s+/i, '').trim();
+    if (!cleaned) return;
+    const targetIdx = findSystemIndex(cleaned);
+    if (targetIdx >= 0 && targetIdx !== i) {
+      const key = `${Math.min(i, targetIdx)}-${Math.max(i, targetIdx)}`;
+      if (!edgeSet.has(key)) {
+        edgeSet.add(key);
+        EDGES.push([i, targetIdx]);
+      }
+    }
+  });
+});
 
 // Connection counts
 const connCount = {};
@@ -392,8 +460,12 @@ const categories = [...catSet].filter(c => c && c !== 'Uncategorized').sort();
 // ─── STATE ───────────────────────────────────────────────────────
 let filterCat = 'All';
 let filterOwner = 'All';
-let mcOnly = false;
+let reqOnly = false;
 let highlightSystem = null;
+
+const svg = document.getElementById('main-svg');
+const tooltip = document.getElementById('tooltip');
+const NS = 'http://www.w3.org/2000/svg';
 
 // ─── LAYOUT ──────────────────────────────────────────────────────
 function hexPath(cx, cy, r) {
@@ -407,40 +479,71 @@ function hexPath(cx, cy, r) {
 
 function render() {
   svg.innerHTML = '';
-  
-  const W = window.innerWidth;
-  const H = window.innerHeight;
-  const cx = W / 2;
+  const container = document.getElementById('canvas-container');
+  const W = container.clientWidth;
+  const H = container.clientHeight;
+  // Shift center right to visually center between legend right edge and page right edge
+  const legendEl = document.getElementById('legend');
+  const legendW = legendEl ? legendEl.offsetWidth + 16 : 0; // legend width + left margin
+  const cx = legendW + (W - legendW) / 2;
   const cy = H / 2;
-  
-  // Filter systems — BAS is no longer special, it follows filters like everything else
+
+  // Filter systems
   let visible = systems.filter(s => {
     if (filterCat !== 'All' && s.category !== filterCat) return false;
     if (filterOwner !== 'All' && s.owner !== filterOwner) return false;
-    if (mcOnly && !s.mc) return false;
+    if (reqOnly && !s.hasRequired) return false;
     return true;
   });
-  
+
   // Group by category
   const byCat = {};
   visible.forEach(s => {
     if (!byCat[s.category]) byCat[s.category] = [];
     byCat[s.category].push(s);
   });
-  
   const catKeys = Object.keys(byCat).sort();
   const totalSystems = visible.length;
-  
+
   if (totalSystems === 0) {
-    document.getElementById('stats-line').textContent = '0 systems · 0 connections';
     return;
   }
-  
-  // Assign angular segments per category (full radial — no hub)
-  const gap = 0.08;
+
+  // Defs
+  const defs = document.createElementNS(NS, 'defs');
+  const rg = document.createElementNS(NS, 'radialGradient');
+  rg.id = 'bgGlow';
+  rg.innerHTML = '<stop offset="0%" stop-color="#151530" /><stop offset="100%" stop-color="#0d0d1a" />';
+  defs.appendChild(rg);
+  const flt = document.createElementNS(NS, 'filter');
+  flt.id = 'glow';
+  flt.innerHTML = '<feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>';
+  defs.appendChild(flt);
+  svg.appendChild(defs);
+
+  // BG
+  const bg = document.createElementNS(NS, 'rect');
+  bg.setAttribute('width', W); bg.setAttribute('height', H);
+  bg.setAttribute('fill', 'url(#bgGlow)');
+  svg.appendChild(bg);
+
+  // Guide rings
+  const gGuides = document.createElementNS(NS, 'g');
+  [0.12, 0.22, 0.32, 0.42].forEach(frac => {
+    const r = Math.min(W, H) * frac;
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r);
+    c.setAttribute('fill', 'none'); c.setAttribute('stroke', '#1a1a34');
+    c.setAttribute('stroke-width', '0.5'); c.setAttribute('stroke-dasharray', '2,5');
+    gGuides.appendChild(c);
+  });
+  svg.appendChild(gGuides);
+
+  // Category arc segments
+  const gap = 0.06;
   const totalGap = gap * catKeys.length;
   const avail = 2 * Math.PI - totalGap;
-  
+  const ringR = Math.min(W, H) * 0.14;
   const segments = [];
   let angle = -Math.PI / 2;
   catKeys.forEach(cat => {
@@ -449,49 +552,7 @@ function render() {
     segments.push({ cat, start: angle, end: angle + span, systems: byCat[cat] });
     angle += span + gap;
   });
-  
-  // Defs
-  const defs = document.createElementNS(NS, 'defs');
-  
-  const rg = document.createElementNS(NS, 'radialGradient');
-  rg.id = 'bgGlow';
-  rg.innerHTML = '<stop offset="0%" stop-color="#1a1a3a" /><stop offset="100%" stop-color="#0d0d1a" />';
-  defs.appendChild(rg);
-  
-  const flt = document.createElementNS(NS, 'filter');
-  flt.id = 'glow';
-  flt.innerHTML = '<feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>';
-  defs.appendChild(flt);
-  
-  svg.appendChild(defs);
-  
-  // Background
-  const bg = document.createElementNS(NS, 'rect');
-  bg.setAttribute('width', W);
-  bg.setAttribute('height', H);
-  bg.setAttribute('fill', 'url(#bgGlow)');
-  svg.appendChild(bg);
-  
-  // Draw subtle concentric guide rings
-  const gGuides = document.createElementNS(NS, 'g');
-  [0.15, 0.25, 0.35, 0.44].forEach(frac => {
-    const r = Math.min(W, H) * frac;
-    const c = document.createElementNS(NS, 'circle');
-    c.setAttribute('cx', cx);
-    c.setAttribute('cy', cy);
-    c.setAttribute('r', r);
-    c.setAttribute('fill', 'none');
-    c.setAttribute('stroke', '#1e1e38');
-    c.setAttribute('stroke-width', '0.5');
-    c.setAttribute('stroke-dasharray', '3,6');
-    gGuides.appendChild(c);
-  });
-  svg.appendChild(gGuides);
-  
-  // Draw category arc segments (donut ring for visual grouping)
-  const ringR = Math.min(W, H) * 0.16;
-  const ringW = 10;
-  
+
   const gArcs = document.createElementNS(NS, 'g');
   segments.forEach(seg => {
     const path = document.createElementNS(NS, 'path');
@@ -501,232 +562,168 @@ function render() {
     const large = (seg.end - seg.start) > Math.PI ? 1 : 0;
     path.setAttribute('d', `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`);
     path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', CAT_COLORS[seg.cat] || '#666');
-    path.setAttribute('stroke-width', ringW);
+    path.setAttribute('stroke', CAT_COLORS[seg.cat] || '#555');
+    path.setAttribute('stroke-width', 8);
     path.setAttribute('stroke-linecap', 'round');
-    path.setAttribute('opacity', '0.3');
+    path.setAttribute('opacity', '0.25');
     gArcs.appendChild(path);
-    
-    // Category label along arc
+
+    // Category label
     const mid = (seg.start + seg.end) / 2;
-    const lr = ringR - 22;
+    const lr = ringR - 18;
     const lx = cx + lr * Math.cos(mid), ly = cy + lr * Math.sin(mid);
     const txt = document.createElementNS(NS, 'text');
-    txt.setAttribute('x', lx);
-    txt.setAttribute('y', ly);
+    txt.setAttribute('x', lx); txt.setAttribute('y', ly);
     txt.setAttribute('fill', CAT_COLORS[seg.cat] || '#888');
-    txt.setAttribute('font-size', '8');
-    txt.setAttribute('font-weight', '600');
-    txt.setAttribute('text-anchor', 'middle');
-    txt.setAttribute('dominant-baseline', 'middle');
-    txt.setAttribute('opacity', '0.6');
+    txt.setAttribute('font-size', '7'); txt.setAttribute('font-weight', '600');
+    txt.setAttribute('text-anchor', 'middle'); txt.setAttribute('dominant-baseline', 'middle');
+    txt.setAttribute('opacity', '0.5');
     const shortName = seg.cat.length > 22 ? seg.cat.replace(/ & /g, '/').replace(/\(.*?\)/g, '').trim().slice(0, 20) + '…' : seg.cat;
     txt.textContent = shortName;
-    
     const deg = mid * (180 / Math.PI);
     const flip = deg > 90 || deg < -90;
     txt.setAttribute('transform', `rotate(${flip ? deg + 180 : deg}, ${lx}, ${ly})`);
     gArcs.appendChild(txt);
   });
   svg.appendChild(gArcs);
-  
-  // Position ALL nodes radially — BAS is just another node in its category
+
+  // ─── POSITION NODES: most-connected → inner ring ───────────────
   const nodePositions = {};
-  const innerR = ringR + 30;
+  const innerR = ringR + 22;
   const outerR = Math.min(W, H) * 0.46;
-  
+
   segments.forEach(seg => {
-    // Sort: connected systems first (by connection count), then unconnected
-    const connected = seg.systems.filter(s => connCount[s.idx]);
-    const unconnected = seg.systems.filter(s => !connCount[s.idx]);
-    const allSorted = [...connected.sort((a, b) => (connCount[b.idx] || 0) - (connCount[a.idx] || 0)), ...unconnected];
-    
+    // Sort by connection count DESC — most connected goes to inner ring
+    const sorted = [...seg.systems].sort((a, b) => (connCount[b.idx] || 0) - (connCount[a.idx] || 0));
+
     const angSpan = seg.end - seg.start;
-    const rings = allSorted.length > 12 ? 4 : allSorted.length > 8 ? 3 : allSorted.length > 4 ? 2 : 1;
-    
-    allSorted.forEach((s, i) => {
-      const ring = Math.floor(i / Math.ceil(allSorted.length / rings));
-      const idxInRing = i - ring * Math.ceil(allSorted.length / rings);
-      const countInRing = Math.min(Math.ceil(allSorted.length / rings), allSorted.length - ring * Math.ceil(allSorted.length / rings));
-      
+    const n = sorted.length;
+    const rings = n > 14 ? 4 : n > 8 ? 3 : n > 4 ? 2 : 1;
+    const perRing = Math.ceil(n / rings);
+
+    sorted.forEach((s, i) => {
+      const ring = Math.floor(i / perRing);
+      const idxInRing = i - ring * perRing;
+      const countInRing = Math.min(perRing, n - ring * perRing);
+
       const r = innerR + (outerR - innerR) * (ring / Math.max(1, rings - 0.3));
-      const angPad = 0.02;
+      const angPad = 0.015;
       const a = seg.start + angPad + (angSpan - 2 * angPad) * ((idxInRing + 0.5) / countInRing);
-      
-      // Node size based on connections — BAS will naturally get a bigger node due to many connections
+
       const cc = connCount[s.idx] || 0;
-      const baseR = s.idx === 0 ? 22 : Math.max(11, Math.min(20, 9 + cc * 1.2));
-      
-      nodePositions[s.idx] = {
-        x: cx + r * Math.cos(a),
-        y: cy + r * Math.sin(a),
-        r: baseR
-      };
+      const baseR = Math.max(10, Math.min(18, 8 + cc * 1.1));
+
+      nodePositions[s.idx] = { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a), r: baseR };
     });
   });
-  
-  // Draw connection lines
+
+  // ─── DRAW EDGES ────────────────────────────────────────────────
   const gLines = document.createElementNS(NS, 'g');
   EDGES.forEach(([si, ti]) => {
     const sp = nodePositions[si], tp = nodePositions[ti];
     if (!sp || !tp) return;
-    
     const isHighlit = highlightSystem === null || highlightSystem === si || highlightSystem === ti;
-    
-    // Use curved lines for cross-category connections
     const sameCat = systems[si].category === systems[ti].category;
-    
+
     if (sameCat) {
       const line = document.createElementNS(NS, 'line');
-      line.setAttribute('x1', sp.x);
-      line.setAttribute('y1', sp.y);
-      line.setAttribute('x2', tp.x);
-      line.setAttribute('y2', tp.y);
+      line.setAttribute('x1', sp.x); line.setAttribute('y1', sp.y);
+      line.setAttribute('x2', tp.x); line.setAttribute('y2', tp.y);
       line.setAttribute('stroke', CAT_COLORS[systems[si].category] || '#444');
-      line.setAttribute('stroke-width', isHighlit ? 1.5 : 0.5);
-      line.setAttribute('stroke-opacity', isHighlit ? (highlightSystem !== null ? 0.6 : 0.15) : 0.03);
+      line.setAttribute('stroke-width', isHighlit ? 1.2 : 0.4);
+      line.setAttribute('stroke-opacity', isHighlit ? (highlightSystem !== null ? 0.55 : 0.12) : 0.02);
       line.classList.add('connection-line');
       gLines.appendChild(line);
     } else {
-      // Curved path through center area for cross-category edges
       const mx = cx + (sp.x + tp.x - 2 * cx) * 0.15;
       const my = cy + (sp.y + tp.y - 2 * cy) * 0.15;
       const path = document.createElementNS(NS, 'path');
       path.setAttribute('d', `M ${sp.x} ${sp.y} Q ${mx} ${my} ${tp.x} ${tp.y}`);
       path.setAttribute('fill', 'none');
-      path.setAttribute('stroke', '#5a5a7a');
-      path.setAttribute('stroke-width', isHighlit ? 1.2 : 0.4);
-      path.setAttribute('stroke-opacity', isHighlit ? (highlightSystem !== null ? 0.5 : 0.12) : 0.03);
-      path.setAttribute('stroke-dasharray', '4,3');
+      path.setAttribute('stroke', '#4a4a6a');
+      path.setAttribute('stroke-width', isHighlit ? 1 : 0.3);
+      path.setAttribute('stroke-opacity', isHighlit ? (highlightSystem !== null ? 0.45 : 0.1) : 0.02);
+      path.setAttribute('stroke-dasharray', '3,3');
       path.classList.add('connection-line');
       gLines.appendChild(path);
     }
   });
   svg.appendChild(gLines);
-  
-  // Draw nodes
+
+  // ─── DRAW NODES ────────────────────────────────────────────────
   const gNodes = document.createElementNS(NS, 'g');
-  
   Object.entries(nodePositions).forEach(([idx, pos]) => {
     const i = parseInt(idx);
     const sys = systems[i];
     if (!sys) return;
-    
+
     const isHighlit = highlightSystem === null || highlightSystem === i ||
       EDGES.some(([s, t]) => (s === highlightSystem && t === i) || (t === highlightSystem && s === i));
-    
-    const isBAS = i === 0;
+
     const cc = connCount[i] || 0;
-    
     const g = document.createElementNS(NS, 'g');
     g.classList.add('hex-node');
-    g.style.opacity = isHighlit ? 1 : (highlightSystem !== null ? 0.12 : 1);
-    
-    // BAS gets a subtle distinguishing ring (it's still prominent due to connections, just not THE hub)
-    if (isBAS) {
-      const ring = document.createElementNS(NS, 'circle');
-      ring.setAttribute('cx', pos.x);
-      ring.setAttribute('cy', pos.y);
-      ring.setAttribute('r', pos.r + 4);
-      ring.setAttribute('fill', 'none');
-      ring.setAttribute('stroke', CAT_COLORS[sys.category] || '#666');
-      ring.setAttribute('stroke-width', '1.5');
-      ring.setAttribute('stroke-opacity', '0.4');
-      ring.setAttribute('stroke-dasharray', '3,2');
-      g.appendChild(ring);
-    }
-    
+    g.style.opacity = isHighlit ? 1 : (highlightSystem !== null ? 0.1 : 1);
+
     const hex = document.createElementNS(NS, 'path');
     hex.setAttribute('d', hexPath(pos.x, pos.y, pos.r));
-    hex.setAttribute('fill', (CAT_COLORS[sys.category] || '#666') + (isBAS ? '55' : '33'));
-    hex.setAttribute('stroke', CAT_COLORS[sys.category] || '#666');
-    hex.setAttribute('stroke-width', sys.mc ? 2 : (isBAS ? 1.5 : 1));
-    hex.setAttribute('stroke-opacity', sys.mc ? 0.9 : (isBAS ? 0.8 : 0.5));
-    if (isBAS) hex.setAttribute('filter', 'url(#glow)');
-    g.appendChild(hex);
-    
-    if (sys.mc) {
-      const star = document.createElementNS(NS, 'text');
-      star.setAttribute('x', pos.x + pos.r - 4);
-      star.setAttribute('y', pos.y - pos.r + 8);
-      star.setAttribute('fill', '#e8735a');
-      star.setAttribute('font-size', '8');
-      star.setAttribute('font-weight', '700');
-      star.textContent = '★';
-      g.appendChild(star);
+    hex.setAttribute('fill', (CAT_COLORS[sys.category] || '#555') + '30');
+
+    // BORDER: only show if system has required connections
+    if (sys.hasRequired) {
+      hex.setAttribute('stroke', CAT_COLORS[sys.category] || '#555');
+      hex.setAttribute('stroke-width', 1.5);
+      hex.setAttribute('stroke-opacity', '0.85');
+    } else {
+      hex.setAttribute('stroke', 'none');
     }
-    
+    g.appendChild(hex);
+
     // Label
     const label = document.createElementNS(NS, 'text');
     label.setAttribute('x', pos.x);
-    label.setAttribute('y', pos.y + (isBAS ? -2 : 1));
-    label.setAttribute('fill', '#ddd');
-    label.setAttribute('font-size', isBAS ? '8' : (pos.r > 16 ? '7' : '6'));
-    label.setAttribute('font-weight', isBAS ? '700' : '600');
+    label.setAttribute('y', pos.y + 1);
+    label.setAttribute('fill', '#ccc');
+    label.setAttribute('font-size', pos.r > 14 ? '6.5' : '5.5');
+    label.setAttribute('font-weight', '500');
     label.setAttribute('text-anchor', 'middle');
     label.setAttribute('dominant-baseline', 'middle');
-    const maxLen = isBAS ? 22 : 18;
+    const maxLen = 18;
     const short = sys.name.length > maxLen ? sys.name.slice(0, maxLen - 2) + '…' : sys.name;
     label.textContent = short;
     g.appendChild(label);
-    
-    // Connection count below label for BAS
-    if (isBAS && cc > 0) {
-      const sub = document.createElementNS(NS, 'text');
-      sub.setAttribute('x', pos.x);
-      sub.setAttribute('y', pos.y + 10);
-      sub.setAttribute('fill', '#aaa');
-      sub.setAttribute('font-size', '6');
-      sub.setAttribute('font-weight', '500');
-      sub.setAttribute('text-anchor', 'middle');
-      sub.setAttribute('opacity', '0.6');
-      sub.textContent = `${cc} conn.`;
-      g.appendChild(sub);
-    }
-    
+
     attachNodeEvents(g, sys, pos);
     gNodes.appendChild(g);
   });
-  
   svg.appendChild(gNodes);
-  
-  // Update stats
-  document.getElementById('stats-line').textContent = 
-    `${visible.length} systems · ${EDGES.filter(([s,t]) => nodePositions[s] && nodePositions[t]).length} connections · ${catKeys.length} categories`;
+
+
 }
 
 function attachNodeEvents(el, sys, pos) {
-  el.style.cursor = 'pointer';
-  
   el.addEventListener('mouseenter', (e) => {
     const cc = connCount[sys.idx] || 0;
     const connectedTo = EDGES
       .filter(([s, t]) => s === sys.idx || t === sys.idx)
       .map(([s, t]) => systems[s === sys.idx ? t : s]?.name)
-      .filter(Boolean)
-      .slice(0, 6);
-    
+      .filter(Boolean).slice(0, 6);
+
     tooltip.innerHTML = `
       <div class="tt-name" style="color:${CAT_COLORS[sys.category] || '#ccc'}">${sys.name}</div>
       <div class="tt-cat">${sys.category}</div>
       <div class="tt-row"><span class="tt-label">Owner</span><span class="tt-val">${sys.owner || '—'}</span></div>
-      <div class="tt-row"><span class="tt-label">Status</span><span class="tt-val">${sys.status || '—'}</span></div>
       <div class="tt-row"><span class="tt-label">Connections</span><span class="tt-val">${cc}</span></div>
       ${connectedTo.length ? '<div class="tt-row"><span class="tt-label">Connected to</span><span class="tt-val">' + connectedTo.join(', ') + (cc > 6 ? '…' : '') + '</span></div>' : ''}
-      ${sys.mc ? '<div class="tt-mc">★ Mission Critical</div>' : ''}
+      ${sys.hasRequired ? '<div class="tt-req">◆ Has Required Connections</div>' : ''}
     `;
     tooltip.classList.add('visible');
   });
-  
   el.addEventListener('mousemove', (e) => {
     tooltip.style.left = (e.clientX + 14) + 'px';
     tooltip.style.top = (e.clientY - 10) + 'px';
   });
-  
-  el.addEventListener('mouseleave', () => {
-    tooltip.classList.remove('visible');
-  });
-  
+  el.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
   el.addEventListener('click', () => {
     highlightSystem = highlightSystem === sys.idx ? null : sys.idx;
     render();
@@ -734,48 +731,8 @@ function attachNodeEvents(el, sys, pos) {
 }
 
 // ─── CONTROLS ────────────────────────────────────────────────────
-const catSelect = document.getElementById('filter-cat');
-categories.forEach(c => {
-  const opt = document.createElement('option');
-  opt.value = c;
-  opt.textContent = c;
-  catSelect.appendChild(opt);
-});
-catSelect.addEventListener('change', () => {
-  filterCat = catSelect.value;
-  highlightSystem = null;
-  render();
-});
-
-const ownerSelect = document.getElementById('filter-owner');
-const owners = [...new Set(systems.map(s => s.owner).filter(Boolean))].sort();
-owners.forEach(o => {
-  const opt = document.createElement('option');
-  opt.value = o;
-  opt.textContent = o;
-  ownerSelect.appendChild(opt);
-});
-ownerSelect.addEventListener('change', () => {
-  filterOwner = ownerSelect.value;
-  highlightSystem = null;
-  render();
-});
-
-document.getElementById('btn-mc').addEventListener('click', function() {
-  mcOnly = !mcOnly;
-  this.classList.toggle('active', mcOnly);
-  highlightSystem = null;
-  render();
-});
-
 document.getElementById('btn-reset').addEventListener('click', () => {
-  filterCat = 'All';
-  filterOwner = 'All';
-  mcOnly = false;
-  highlightSystem = null;
-  catSelect.value = 'All';
-  ownerSelect.value = 'All';
-  document.getElementById('btn-mc').classList.remove('active');
+  filterCat = 'All'; filterOwner = 'All'; reqOnly = false; highlightSystem = null;
   render();
 });
 
@@ -785,21 +742,14 @@ legend.innerHTML = '<div class="legend-title">Categories</div>' +
   categories.map(c => {
     const cnt = systems.filter(s => s.category === c).length;
     return '<div class="legend-item" data-cat="' + c + '">' +
-      '<div class="swatch" style="background:' + (CAT_COLORS[c] || '#666') + '"></div>' +
+      '<div class="swatch" style="background:' + (CAT_COLORS[c] || '#555') + '"></div>' +
       '<span>' + (c.length > 30 ? c.slice(0, 28) + '…' : c) + '</span>' +
-      '<span class="count">' + cnt + '</span>' +
-    '</div>';
-  }).join('') +
-  '<div style="margin-top:8px;padding-top:6px;border-top:1px solid #2a2a44;font-size:9px;color:#555">' +
-    '<span style="color:#e8735a">★</span> = Mission Critical &nbsp;&nbsp; Click node to highlight<br>' +
-    '<span style="color:#5a5a7a">┅</span> = Cross-category link &nbsp; <span style="color:#E8735A">━</span> = Same-category link' +
-  '</div>';
-
+      '</div>';
+  }).join('');
 legend.querySelectorAll('.legend-item').forEach(el => {
   el.addEventListener('click', () => {
     const cat = el.dataset.cat;
     filterCat = filterCat === cat ? 'All' : cat;
-    catSelect.value = filterCat;
     highlightSystem = null;
     render();
   });
