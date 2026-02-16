@@ -24,9 +24,9 @@
   #page-frame {
     position: relative;
     width: 100vw;
-    height: 56.25vw; /* 16:9 */
+    height: 50vw; /* 16:8 */
     max-height: 100vh;
-    max-width: 177.78vh; /* 16:9 inverse */
+    max-width: 200vh; /* 16:8 inverse */
     background: #0d0d1a;
     overflow: hidden;
   }
@@ -56,33 +56,6 @@
     margin-right: 10px;
     flex-shrink: 0;
   }
-
-  /* ── CONTROLS ── styled to match Power BI filter pills */
-  .controls {
-    position: absolute;
-    top: 8px;
-    right: 20px;
-    display: flex;
-    gap: 6px;
-    z-index: 60;
-    align-items: center;
-    height: 48px;
-  }
-  .controls select { display: none; }
-  .controls button {
-    background: #16162a;
-    color: #bbb;
-    border: 1px solid #2a2a44;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 11px;
-    font-family: 'DM Sans', sans-serif;
-    cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
-    white-space: nowrap;
-  }
-  .controls button:hover { background: #1e1e38; border-color: #3a3a5a; }
-  .controls button.active { background: #e8735a22; border-color: #e8735a66; color: #E8735A; }
 
   /* ── SVG CANVAS ── */
   #canvas-container {
@@ -118,17 +91,36 @@
   .tooltip .tt-val { font-weight: 600; }
   .tooltip .tt-req { color: #E8735A; font-weight: 600; font-size: 10px; margin-top: 4px; }
 
-  /* ── LEGEND ── */
-  .legend {
+  .legend-wrapper {
     position: absolute;
     bottom: 12px;
     left: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 50;
+  }
+  .legend-wrapper button {
+    background: #16162a;
+    color: #bbb;
+    border: 1px solid #2a2a44;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    width: 100%;
+  }
+  .legend-wrapper button:hover { background: #1e1e38; border-color: #3a3a5a; }
+
+  /* ── LEGEND ── */
+  .legend {
     background: #111126dd;
     border: 1px solid #2a2a44;
     border-radius: 4px;
     padding: 10px 14px;
     font-size: 10px;
-    z-index: 50;
   }
   .legend-title {
     font-size: 8px;
@@ -166,7 +158,10 @@
   <div id="canvas-container">
     <svg id="main-svg"></svg>
   </div>
-  <div class="legend" id="legend"></div>
+  <div class="legend-wrapper">
+    <button id="btn-reset">Reset</button>
+    <div class="legend" id="legend"></div>
+  </div>
 
   <div class="tooltip" id="tooltip"></div>
 </div>
@@ -723,6 +718,12 @@ function attachNodeEvents(el, sys, pos) {
     render();
   });
 }
+
+// ─── CONTROLS ────────────────────────────────────────────────────
+document.getElementById('btn-reset').addEventListener('click', () => {
+  filterCat = 'All'; highlightSystem = null;
+  render();
+});
 
 // ─── LEGEND ──────────────────────────────────────────────────────
 const legend = document.getElementById('legend');
